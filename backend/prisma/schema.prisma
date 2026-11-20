@@ -1,0 +1,256 @@
+generator client {
+  provider = "prisma-client-js"
+}
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  HR
+}
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  LOCKED
+}
+enum RegistrationStatus {
+  DRAFT
+  COMPLETE
+}
+enum ScanStatus {
+  PENDING
+  CLEAN
+  INFECTED
+  FAILED
+}
+
+model User {
+  id String @id @db.Char(36)
+  name String
+  email String @unique
+  passwordHash String @map("password_hash")
+  role Role
+  phone String?
+  status UserStatus @default(ACTIVE)
+  mfaEnabled Boolean @default(false) @map("mfa_enabled")
+  mfaSecretEnc Bytes? @map("mfa_secret_enc")
+  lastLoginAt DateTime? @map("last_login_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  deactivatedAt DateTime? @map("deactivated_at")
+  deletedAt DateTime? @map("deleted_at")
+  createdEmployees Employee[] @relation("creator")
+  assignedEmployees Employee[] @relation("assignedHr")
+  sessions Session[]
+  auditLogs AuditLog[]
+  resetTokens PasswordResetToken[]
+  transfersDone EmployeeHrTransfer[] @relation("transferredBy")
+  @@map("users")
+}
+
+model Department {
+  id String @id @db.Char(36)
+  name String @unique @map("department_name")
+  status String @default("ACTIVE")
+  designations Designation[]
+  employees Employee[]
+  @@map("departments")
+}
+
+model Designation {
+  id String @id @db.Char(36)
+  name String @map("designation_name")
+  departmentId String? @map("department_id") @db.Char(36)
+  department Department? @relation(fields: [departmentId], references: [id])
+  status String @default("ACTIVE")
+  employees Employee[]
+  @@unique([departmentId, name])
+  @@map("designations")
+}
+
+model Counter {
+  key String @id
+  value Int @default(0)
+  @@map("counters")
+}
+
+model Employee {
+  id String @id @db.Char(36)
+  employeeCode String @unique @map("employee_code")
+  firstName String @map("first_name")
+  lastName String @map("last_name")
+  dob DateTime? @db.Date
+  gender String?
+  personalMobile String? @map("personal_mobile")
+  emergencyContact String? @map("emergency_contact")
+  personalEmail String? @map("personal_email")
+  currentAddress String? @map("current_address") @db.Text
+  permanentAddress String? @map("permanent_address") @db.Text
+  dateOfJoining DateTime? @map("date_of_joining") @db.Date
+  reportingManager String? @map("reporting_manager")
+  officialEmail String? @map("official_email")
+  employmentType String? @map("employment_type")
+  employmentStatus String @default("ACTIVE") @map("employment_status")
+  registrationStatus RegistrationStatus @default(DRAFT) @map("registration_status")
+  departmentId String? @map("department_id") @db.Char(36)
+  designationId String? @map("designation_id") @db.Char(36)
+  createdByUserId String @map("created_by_user_id") @db.Char(36)
+  assignedHrUserId String @map("assigned_hr_user_id") @db.Char(36)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  archivedAt DateTime? @map("archived_at")
+  customData Json? @map("custom_data")
+  department Department? @relation(fields: [departmentId], references: [id])
+  designation Designation? @relation(fields: [designationId], references: [id])
+  creator User @relation("creator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  assignedHr User @relation("assignedHr", fields: [assignedHrUserId], references: [id], onDelete: Restrict)
+  sensitive EmployeeSensitiveData?
+  documents EmployeeDocument[]
+  transfers EmployeeHrTransfer[]
+  @@index([assignedHrUserId, archivedAt])
+  @@index([registrationStatus])
+  @@map("employees")
+}
+
+model EmployeeSensitiveData {
+  id String @id @db.Char(36)
+  employeeId String @unique @map("employee_id") @db.Char(36)
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+  aadhaarEnc Bytes? @map("aadhaar_enc")
+  panEnc Bytes? @map("pan_enc")
+  uanEnc Bytes? @map("uan_enc")
+  bankAccountEnc Bytes? @map("bank_account_enc")
+  aadhaarLast4 String? @map("aadhaar_last4")
+  panLast4 String? @map("pan_last4")
+  uanLast4 String? @map("uan_last4")
+  bankLast4 String? @map("bank_last4")
+  ifsc String?
+  bankName String? @map("bank_name")
+  keyVersion String @map("encryption_key_version")
+  nonceTagMeta Json? @map("nonce_tag_meta")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  @@map("employee_sensitive_data")
+}
+
+model EmployeeDocument {
+  id String @id @db.Char(36)
+  employeeId String @map("employee_id") @db.Char(36)
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+  documentType String @map("document_type")
+  documentName String @map("document_name")
+  categorySlotKey String @map("category_slot_key")
+  status String @default("PENDING")
+  currentVersionId String? @map("current_version_id") @db.Char(36)
+  uploadedByUserId String @map("uploaded_by_user_id") @db.Char(36)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  versions DocumentVersion[]
+  // slot key = category (standard) or category:uuid (ADDITIONAL) so multiple additional docs are allowed
+  @@unique([employeeId, categorySlotKey])
+  @@map("employee_documents")
+}
+
+model DocumentVersion {
+  id String @id @db.Char(36)
+  documentId String @map("document_id") @db.Char(36)
+  document EmployeeDocument @relation(fields: [documentId], references: [id], onDelete: Restrict)
+  versionNumber Int @map("version_number")
+  storageKey String @map("storage_key")
+  originalFileName String @map("original_file_name")
+  verifiedMimeType String @map("verified_mime_type")
+  fileSize Int @map("file_size")
+  checksum String
+  scanStatus ScanStatus @default(PENDING) @map("scan_status")
+  uploadedByUserId String @map("uploaded_by_user_id") @db.Char(36)
+  uploadedAt DateTime @default(now()) @map("uploaded_at")
+  blob DocumentBlob?
+  @@unique([documentId, versionNumber])
+  @@map("document_versions")
+}
+
+model Session {
+  id String @id @db.Char(36)
+  userId String @map("user_id") @db.Char(36)
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+  sessionTokenHash String @unique @map("session_token_hash")
+  expiresAt DateTime @map("expires_at")
+  lastActivityAt DateTime @map("last_activity_at")
+  revokedAt DateTime? @map("revoked_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  @@map("sessions")
+}
+
+model AuditLog {
+  id String @id @db.Char(36)
+  actorUserId String? @map("actor_user_id") @db.Char(36)
+  actor User? @relation(fields: [actorUserId], references: [id], onDelete: Restrict)
+  action String
+  entityType String @map("entity_type")
+  entityId String? @map("entity_id")
+  metadata Json?
+  ip String?
+  createdAt DateTime @default(now()) @map("created_at")
+  @@index([actorUserId, createdAt])
+  @@map("audit_logs")
+}
+
+model PasswordResetToken {
+  id String @id @db.Char(36)
+  userId String @map("user_id") @db.Char(36)
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+  tokenHash String @unique @map("token_hash")
+  expiresAt DateTime @map("expires_at")
+  usedAt DateTime? @map("used_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  @@map("password_reset_tokens")
+}
+
+model EmployeeHrTransfer {
+  id String @id @db.Char(36)
+  employeeId String @map("employee_id") @db.Char(36)
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+  previousHrId String @map("previous_hr_id") @db.Char(36)
+  newHrId String @map("new_hr_id") @db.Char(36)
+  transferredByUserId String @map("transferred_by_user_id") @db.Char(36)
+  transferredBy User @relation("transferredBy", fields: [transferredByUserId], references: [id], onDelete: Restrict)
+  reason String?
+  transferredAt DateTime @default(now()) @map("transferred_at")
+  @@map("employee_hr_transfers")
+}
+
+model CustomField {
+  id String @id @db.Char(36)
+  label String
+  fieldKey String @unique @map("field_key")
+  fieldType String @map("field_type")
+  section String @default("ADDITIONAL")
+  options Json?
+  required Boolean @default(false)
+  sortOrder Int @default(0) @map("sort_order")
+  status String @default("ACTIVE")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  @@map("custom_fields")
+}
+
+model SupportRequest {
+  id String @id @db.Char(36)
+  name String
+  email String
+  category String
+  message String @db.Text
+  status String @default("NEW")
+  ip String?
+  createdAt DateTime @default(now()) @map("created_at")
+  @@map("support_requests")
+}
+
+model DocumentBlob {
+  versionId String @id @map("version_id") @db.Char(36)
+  version DocumentVersion @relation(fields: [versionId], references: [id], onDelete: Restrict)
+  data Bytes
+  @@map("document_blobs")
+}

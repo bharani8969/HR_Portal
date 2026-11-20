@@ -1,0 +1,45 @@
+# LOCAL full-stack demo with a real malware scanner. NOT a production deployment
+# (production needs S3-compatible private storage, SMTP, HTTPS and managed secrets: see DEPLOYMENT.md).
+# Usage: cp .env.compose.example .env  &&  docker compose up --build
+services:
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: hrms
+      MYSQL_USER: hrms
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+    volumes: [dbdata:/var/lib/mysql]
+    healthcheck: { test: ["CMD", "mysqladmin", "ping", "-h", "localhost"], interval: 10s, retries: 10 }
+  clamav:
+    image: clamav/clamav:stable
+    volumes: [clamdb:/var/lib/clamav]
+  api:
+    build: ./backend
+    depends_on: { db: { condition: service_healthy }, clamav: { condition: service_started } }
+    environment:
+      NODE_ENV: development          # production guard requires S3 + SMTP + https; flip once those exist
+      DATABASE_URL: mysql://hrms:${DB_PASSWORD}@db:3306/hrms
+      FRONTEND_ORIGIN: http://localhost:8080
+      DATA_ENCRYPTION_KEY: ${DATA_ENCRYPTION_KEY}
+      SCAN_DRIVER: clamav
+      CLAMAV_HOST: clamav
+      STORAGE_DRIVER: local
+      STORAGE_LOCAL_DIR: /data/private
+      EMAIL_DRIVER: console
+      CLIENT_NAME: ${CLIENT_NAME:-HRS Tech}
+      APP_NAME: ${APP_NAME:-PeopleVault}
+      POWERED_BY: ${POWERED_BY:-TREZION Technology}
+    volumes: [docs:/data/private]
+  web:
+    build:
+      context: ./frontend
+      args:
+        VITE_CLIENT_NAME: ${CLIENT_NAME:-HRS Tech}
+        VITE_APP_NAME: ${APP_NAME:-PeopleVault}
+        VITE_POWERED_BY: ${POWERED_BY:-TREZION Technology}
+        VITE_BRAND_PRIMARY: ${BRAND_PRIMARY:-#2F6BFF}
+        VITE_BRAND_ACCENT: ${BRAND_ACCENT:-#18D5C8}
+    depends_on: [api]
+    ports: ["8080:80"]
+volumes: { dbdata: {}, clamdb: {}, docs: {} }

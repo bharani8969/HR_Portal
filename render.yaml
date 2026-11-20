@@ -1,0 +1,50 @@
+# Render Blueprint: one free web service that serves the API and the website.
+# Render dashboard -> New -> Blueprint -> pick your GitHub repo. Values marked "sync: false" are asked for once.
+services:
+  - type: web
+    name: peoplevault            # must be unique on Render; your site becomes https://<name>.onrender.com
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/v1/health
+    autoDeploy: true
+    envVars:
+      # --- database (TiDB Cloud Starter, free) ---
+      - key: DATABASE_URL
+        sync: false              # mysql://USER:PASSWORD@HOST:4000/hrms?sslaccept=strict
+      - key: PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK
+        value: "1"
+      # --- site address (set to your real https URL, no trailing slash) ---
+      - key: FRONTEND_ORIGIN
+        sync: false
+      - key: COOKIE_SECURE
+        value: "true"
+      # --- secrets ---
+      - key: DATA_ENCRYPTION_KEY
+        sync: false              # node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+      - key: ADMIN_EMAIL
+        sync: false              # first Admin; delete ADMIN_PASSWORD after the first login
+      - key: ADMIN_PASSWORD
+        sync: false
+      # --- branding (change per client, no rebuild needed) ---
+      - key: CLIENT_NAME
+        value: HRS Tech
+      - key: APP_NAME
+        value: PeopleVault
+      - key: POWERED_BY
+        value: TREZION Technology
+      - key: CONCERN_TO_EMAIL
+        value: bharani7576@gmail.com
+      # --- documents: stored encrypted inside the same SQL database (no extra storage service) ---
+      - key: STORAGE_DRIVER
+        value: db
+      - key: MAX_FILE_MB
+        value: "4"                # keep files small: they live in database rows (TiDB's default row limit is about 6 MB)
+      # --- email (optional; without it, invite/reset links appear only in the Render log) ---
+      - key: EMAIL_DRIVER
+        value: console
+      - key: SMTP_URL
+        sync: false
+      # --- no antivirus on a free 512 MB instance: only the EICAR test string is caught ---
+      - key: SCAN_DRIVER
+        value: dev
