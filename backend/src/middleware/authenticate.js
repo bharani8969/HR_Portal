@@ -13,7 +13,7 @@ export const authenticate = wrap(async (req, res, next) => {
   // Admin must finish MFA setup before using anything except /auth/*.
   if (env.REQUIRE_ADMIN_MFA && s.user.role === "ADMIN" && !s.user.mfaEnabled && !req.originalUrl.startsWith("/api/v1/auth"))
     return res.status(403).json({ success: false, error: { message: "MFA setup required", code: "MFA_SETUP_REQUIRED" } });
-  await prisma.session.update({ where: { id: s.id }, data: { lastActivityAt: now } });
+  if (now - s.lastActivityAt > 60000) await prisma.session.update({ where: { id: s.id }, data: { lastActivityAt: now } }); // idle limit is minutes, so once a minute is enough
   req.sessionId = s.id;
   req.user = { id: s.user.id, role: s.user.role, name: s.user.name, email: s.user.email, mfaEnabled: s.user.mfaEnabled };
   next();

@@ -28,6 +28,9 @@ Validation problems are shown as helper text under the exact field. After sign-i
 ## Free online deployment
 See **DEPLOY-FREE.md**: one free Render service (API + website) + TiDB Cloud Starter (database; documents are stored encrypted inside it). Branding is read from server settings at runtime (`/brand.js`), so one build serves any client. This is for demos/pilots, not real employee data.
 
+## Loading experience
+Every screen shows a thin progress bar and, if a request takes over 0.4 s, a branded full-screen loader that blocks clicks (so users cannot pile extra load on a slow server), a "server is waking up" message after 7 s, automatic retries for reads, a 90 s timeout and shared identical requests (double-click safe). Directory search stays non-blocking.
+
 ## Contact form ("Powered by TREZION Technology")
 Clicking "Powered by ..." anywhere (login page, header, sidebar) opens an *Enter your concern* form. It is delivered to `CONCERN_TO_EMAIL` (default `bharani7576@gmail.com`, set on the server, never chosen by the browser) and is also saved in the `support_requests` table so nothing is lost. For real email delivery set in `backend/.env`:
 `EMAIL_DRIVER=smtp` and `SMTP_URL=smtps://you%40gmail.com:YOUR_APP_PASSWORD@smtp.gmail.com:465` (a Gmail *App password*, which needs 2-step verification on that Google account). Without SMTP the message is saved and printed in the API log only.

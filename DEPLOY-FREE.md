@@ -76,6 +76,12 @@ Create a free monitor at uptimerobot.com (HTTP(s), every 5 minutes) for `https:/
 ## 9. White-label per client
 Change `CLIENT_NAME`, `APP_NAME`, `APP_TAGLINE`, `BRAND_PRIMARY/ACCENT/DARK` in Render and save. No rebuild is needed. For a logo, put the file in `frontend/public/`, push, and set `CLIENT_LOGO_URL=/client-logo.svg`. Use one deployment (database, bucket, keys) per client.
 
+## Making it feel fast
+The app shows a branded loader (thin top bar after 0.15 s, full-screen loader after 0.4 s for reads and 0.12 s for saves) that blocks clicks while data loads, retries reads automatically while the server wakes up, and never sends the same request twice. That hides waiting; these steps reduce it:
+1. **Match regions.** Every page makes several database round trips. If Render is in Oregon and TiDB is in Tokyo, each trip crosses an ocean. In Render open **Settings → Region**. Pick the Render region closest to your TiDB cluster (Singapore for Tokyo). The region cannot be changed later: create a new service in the right region if needed. When creating a TiDB cluster, choose a region near your Render region.
+2. **Keep both awake.** The UptimeRobot monitor (step 7) keeps Render running and, because the health check touches the database, keeps TiDB warm too.
+3. **Already built in:** gzip compression of all responses (the website bundle shrinks to about a third) and one fewer database write per request.
+
 ## Troubleshooting
 | Symptom | Cause / fix |
 |---|---|
@@ -85,7 +91,7 @@ Change `CLIENT_NAME`, `APP_NAME`, `APP_TAGLINE`, `BRAND_PRIMARY/ACCENT/DARK` in 
 | `P1001` / SSL error | Add `?sslaccept=strict` to `DATABASE_URL`; check host, port 4000, and the `xxxx.root` username |
 | `migrate deploy` error mentioning locks or unsupported syntax | Delete `backend/prisma/migrations` in the repo once, redeploy (uses `db push`) |
 | Uploads fail with 500 or "packet/entry too large" | The file is bigger than the database row limit: lower `MAX_FILE_MB` (try 3), or switch to `STORAGE_DRIVER=s3` |
-| Very slow first page | Render woke from sleep; use the UptimeRobot monitor |
+| Very slow first page | Render woke from sleep; use the UptimeRobot monitor. Check the region match under "Making it feel fast" |
 | No invite/reset emails | Set `EMAIL_DRIVER=smtp` and `SMTP_URL`; otherwise copy the link from the Render log |
 
 ## Alternative: Oracle Cloud Always Free VM (more power, more work)

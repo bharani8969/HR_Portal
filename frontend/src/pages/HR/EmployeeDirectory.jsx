@@ -34,7 +34,7 @@ export default function EmployeeDirectory() {
   const timer = useRef();
   const PAGE = 12;
 
-  const load = useCallback(() => { listEmployees({ q, registration, departmentId, sort, page, pageSize: PAGE }).then(setList).catch((e) => setErr(e.message)); }, [q, registration, departmentId, sort, page]);
+  const load = useCallback(() => { listEmployees({ q, registration, departmentId, sort, page, pageSize: PAGE }, { quiet: true }).then(setList).catch((e) => setErr(e.message)); }, [q, registration, departmentId, sort, page]);
   useEffect(() => { setList(null); const t = setTimeout(load, 250); return () => clearTimeout(t); }, [load]);
   useEffect(() => {
     api("/reports/employee-count").then((c) => setCounts(c.registration)).catch(() => {});

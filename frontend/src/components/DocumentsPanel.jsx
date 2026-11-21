@@ -32,7 +32,7 @@ export default function DocumentsPanel({ employeeId, readOnly = false }) {
   const open = (cat, doc) => { target.current = { cat, doc }; pick.current.accept = cat === "PHOTO" ? ".jpg,.jpeg,.png" : ".pdf"; pick.current.click(); };
   const fetchFile = async (doc, inline) => {
     try {
-      const blob = await apiBlob(`/documents/${doc.id}/download${inline ? "?inline=1" : ""}`);
+      const blob = await apiBlob(`/documents/${doc.id}/download${inline ? "?inline=1" : ""}`, { label: inline ? "Opening your document…" : "Preparing your download…" });
       const url = URL.createObjectURL(blob);
       if (inline) window.open(url, "_blank", "noopener"); else { const a = document.createElement("a"); a.href = url; a.download = doc.name; a.click(); }
       setTimeout(() => URL.revokeObjectURL(url), 60000);
