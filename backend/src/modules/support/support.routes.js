@@ -4,6 +4,8 @@ import { z } from "zod";
 import { prisma } from "../../config/database.js";
 import { env } from "../../config/env.js";
 import { sendEmail } from "../../services/emailService.js";
+import { renderEmail } from "../../services/emailTemplates.js";
+import { getConcernRecipients } from "../../services/settings.js";
 import { uuid, ok, fail, wrap, zodFail } from "../../utils/helpers.js";
 
 // Public "Powered by <vendor>" contact form. The recipient is fixed on the server (CONCERN_TO_EMAIL):
@@ -19,7 +21,7 @@ const body = z.object({
 });
 const oneLine = (s) => s.replace(/[\r\n]+/g, " ");
 
-router.get("/info", (_req, res) => res.json(ok({ to: env.CONCERN_TO_EMAIL, categories: CATS })));
+router.get("/info", wrap(async (_req, res) => res.json(ok({ to: (await getConcernRecipients()).join(", "), categories: CATS }))));
 
 router.post("/concern", limiter, wrap(async (req, res) => {
   const p = body.safeParse(req.body); if (!p.success) return zodFail(res, p.error);
@@ -27,9 +29,9 @@ router.post("/concern", limiter, wrap(async (req, res) => {
   let emailed = false, status = "SAVED";
   try {
     emailed = await sendEmail({
-      to: env.CONCERN_TO_EMAIL, replyTo: p.data.email,
+      to: await getConcernRecipients(), replyTo: p.data.email, type: "CONCERN",
       subject: `[${env.APP_NAME} · ${env.CLIENT_NAME}] ${p.data.category} from ${oneLine(p.data.name)}`,
-      text: `New concern from ${env.APP_NAME} (${env.CLIENT_NAME})\n\nName: ${oneLine(p.data.name)}\nEmail: ${p.data.email}\nCategory: ${p.data.category}\nReceived: ${new Date().toISOString()}\n\nMessage:\n${p.data.message}\n`,
+      ...renderEmail({ title: `New concern: ${p.data.category}`, lines: [`From ${oneLine(p.data.name)} <${p.data.email}>. Reply to this email to answer them directly.`, `Received ${new Date().toUTCString()}`], quote: p.data.message }),
     });
     if (emailed) status = "EMAILED";
   } catch (e) { status = "EMAIL_FAILED"; console.error("Concern email failed:", e.message); }

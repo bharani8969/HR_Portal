@@ -9,6 +9,7 @@ import { env } from "../../config/env.js";
 import { authenticate } from "../../middleware/authenticate.js";
 import { encrypt, decrypt } from "../../services/encryptionService.js";
 import { sendEmail } from "../../services/emailService.js";
+import { renderEmail } from "../../services/emailTemplates.js";
 import { newSecret, verifyTotp } from "../../utils/totp.js";
 import { sha256, randomToken, uuid, ok, fail, wrap, zodFail } from "../../utils/helpers.js";
 import { issueResetToken } from "./tokens.js";
@@ -130,7 +131,12 @@ router.post("/forgot-password", limiter, wrap(async (req, res) => {
     const user = await prisma.user.findUnique({ where: { email: p.data.email.toLowerCase() } });
     if (user?.status === "ACTIVE") {
       const link = await issueResetToken(user.id, 30);
-      await sendEmail({ to: user.email, subject: `Reset your ${env.APP_NAME} password`, text: `Use this link within 30 minutes (single use):\n${link}\n\nPowered by ${env.POWERED_BY}` });
+      try { // a delivery problem must never change the generic answer or reveal that the account exists
+        await sendEmail({
+          to: user.email, type: "RESET", subject: `Reset your ${env.APP_NAME} password`,
+          ...renderEmail({ title: "Reset your password", lines: [`We received a request to reset your ${env.APP_NAME} password.`, "The link works once and expires in 30 minutes. If you did not ask for this, you can ignore this email."], button: { label: "Choose a new password", url: link } }),
+        });
+      } catch (e) { console.error("Reset email failed:", e.message); }
       await audit(user.id, "PASSWORD_RESET_REQUESTED", "user", user.id, req.ip);
     }
   }

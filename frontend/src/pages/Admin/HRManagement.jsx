@@ -78,11 +78,12 @@ export default function HRManagement() {
       </Dialog>
 
       <Dialog open={!!created} onClose={() => setCreated(null)} fullWidth maxWidth="xs">
-        <DialogTitle>Invitation sent</DialogTitle>
+        <DialogTitle>{created?.emailed ? "Invitation sent" : "Invitation created"}</DialogTitle>
         <DialogContent>
-          <Typography>An email with a single-use link (valid 72 hours) was sent to <b>{created?.user.email}</b> so they can set their own password.</Typography>
-          {created?.inviteLink && <><Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 2 }}>Development mode: email is printed in the server log. Link:</Typography>
-            <Paper variant="outlined" sx={{ p: 1.5, mt: 1, fontFamily: "monospace", fontSize: 12, wordBreak: "break-all", userSelect: "all" }}>{created.inviteLink}</Paper></>}
+          {created?.emailed
+            ? <Typography>An email with a single-use link (valid 72 hours) was sent to <b>{created?.user.email}</b> so they can set their own password.</Typography>
+            : <Alert severity="warning" sx={{ mb: 2 }}>No email went out (email is not set up yet, or delivery failed). Copy the link below and send it to <b>{created?.user.name}</b> securely. See <b>Email → Delivery log</b> for the reason.</Alert>}
+          {created?.inviteLink && <Paper variant="outlined" sx={{ p: 1.5, mt: 1, fontFamily: "monospace", fontSize: 12, wordBreak: "break-all", userSelect: "all" }}>{created.inviteLink}</Paper>}
         </DialogContent>
         <DialogActions sx={{ p: 2.5 }}><Button variant="contained" onClick={() => setCreated(null)}>Done</Button></DialogActions>
       </Dialog>

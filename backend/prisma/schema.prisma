@@ -254,3 +254,25 @@ model DocumentBlob {
   data Bytes
   @@map("document_blobs")
 }
+
+model AppSetting {
+  key String @id @db.VarChar(100)
+  value Json
+  updatedBy String? @map("updated_by") @db.Char(36)
+  updatedAt DateTime @updatedAt @map("updated_at")
+  @@map("app_settings")
+}
+
+model EmailLog {
+  id String @id @db.Char(36)
+  type String @db.VarChar(30)
+  toAddress String @map("to_address") @db.VarChar(500)
+  subject String @db.VarChar(200)
+  status String @db.VarChar(20)
+  provider String @db.VarChar(20)
+  providerId String? @map("provider_id") @db.VarChar(100)
+  error String? @db.VarChar(500)
+  createdAt DateTime @default(now()) @map("created_at")
+  @@index([createdAt])
+  @@map("email_logs")
+}

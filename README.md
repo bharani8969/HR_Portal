@@ -28,6 +28,9 @@ Validation problems are shown as helper text under the exact field. After sign-i
 ## Free online deployment
 See **DEPLOY-FREE.md**: one free Render service (API + website) + TiDB Cloud Starter (database; documents are stored encrypted inside it). Branding is read from server settings at runtime (`/brand.js`), so one build serves any client. This is for demos/pilots, not real employee data.
 
+## Email (Resend) and destinations
+Set `EMAIL_DRIVER=resend`, `RESEND_API_KEY` and `EMAIL_FROM` (see DEPLOY-FREE.md step 4). Admin → **Email** manages the destination addresses for the "Powered by" concern form (up to 5), shows whether the provider is connected, sends a test email, and lists every delivery with its result. Reset-password, invitation and concern emails are branded HTML with a plain-text fallback. SMTP still works where SMTP ports are open.
+
 ## Loading experience
 Every screen shows a thin progress bar and, if a request takes over 0.4 s, a branded full-screen loader that blocks clicks (so users cannot pile extra load on a slow server), a "server is waking up" message after 7 s, automatic retries for reads, a 90 s timeout and shared identical requests (double-click safe). Directory search stays non-blocking.
 

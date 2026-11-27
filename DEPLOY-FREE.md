@@ -11,7 +11,7 @@ Free tiers change often. Re-check each provider's pricing page before you rely o
 | Website + API | Render free web service | 512 MB RAM, sleeps after 15 min idle (about 1 min to wake), 750 h/month (enough for one always-on service) |
 | Database | TiDB Cloud Starter | 5 GiB storage and 50M request units per month per instance, scales to zero (first query after idle is slower) |
 | Documents | Same database (`STORAGE_DRIVER=db`) | Counts against the 5 GiB database limit; each file is encrypted with AES-256-GCM before it is saved |
-| Email (optional) | Gmail SMTP with an App Password | Personal Gmail daily sending limits apply |
+| Email | Resend (HTTPS API) | Free: 3,000 emails/month and 100/day. Render's free plan **blocks SMTP**, so Gmail/SMTP cannot be used there |
 
 ## 1. Put the code on GitHub
 1. Make a **private** repository on github.com.
@@ -42,8 +42,16 @@ With `STORAGE_DRIVER=db` (already set in `render.yaml`) every uploaded file is e
 - **Key:** if `DATA_ENCRYPTION_KEY` is lost, the documents cannot be read, exactly like the encrypted Aadhaar/PAN values.
 - **Prefer a bucket?** Set `STORAGE_DRIVER=s3` and the `OBJECT_STORAGE_*` variables (Cloudflare R2 or Backblaze B2 work); the app supports both.
 
-## 4. Email (optional)
-Create a Google **App Password** (needs 2-step verification on that Google account). Then use `EMAIL_DRIVER=smtp` and `SMTP_URL=smtps://you%40gmail.com:APP_PASSWORD@smtp.gmail.com:465`.
+## 4. Email with Resend
+Render's free plan blocks the SMTP ports, so use Resend's HTTPS API (the app has a built-in Resend driver).
+1. Sign up at resend.com. Use the email address you want to receive tests at, for example `bharani7576@gmail.com`.
+2. **API Keys → Create API Key** (permission: Sending access). Copy it once.
+3. Pick how you will send:
+   - **Quick test, no domain:** `EMAIL_FROM` = `onboarding@resend.dev`. Resend only delivers this sender's mail to **the email your Resend account was created with**. Good enough to test concerns sent to that address; invitations and password resets to other people will fail.
+   - **Real use:** you need a domain you own (for example `hrportal.com`). In Resend open **Domains → Add Domain**, add the DNS records it shows (SPF, DKIM) at your domain provider, wait until it says *Verified*, then set `EMAIL_FROM` = `HR Portal <no-reply@yourdomain.com>`. After that you can email anyone.
+4. In Render **Environment** set `EMAIL_DRIVER=resend`, `RESEND_API_KEY=re_...` and `EMAIL_FROM`.
+5. Sign in as Admin, open **Email** in the sidebar, press **Send test**. A failure shows Resend's exact reason, and every attempt appears in the **Delivery log**.
+Free limits: 3,000 emails per month and 100 per day; each recipient counts as one email.
 
 ## 5. Render
 1. Sign up at render.com with GitHub.
@@ -54,11 +62,10 @@ Create a Google **App Password** (needs 2-step verification on that Google accou
    | `FRONTEND_ORIGIN` | `https://<service-name>.onrender.com` (exactly, no trailing slash). If unsure of the final URL, deploy once, then fix it |
    | `DATA_ENCRYPTION_KEY` | `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`. **Keep a copy** |
    | `ADMIN_EMAIL`, `ADMIN_PASSWORD` | your first Admin (password 12+ characters) |
-   | `SMTP_URL` | from step 4, or leave blank |
+   | `EMAIL_DRIVER` / `RESEND_API_KEY` / `EMAIL_FROM` | `resend` / key from step 4 / sender address (see step 4) |
 3. Click **Apply**. The first build takes several minutes.
 4. In the service **Logs** you should see: the schema step (`Applying committed migrations...` or `db push`), `Bootstrap: first Admin created`, then `... API for HRS Tech ... on :10000`.
 5. If the service name was taken, Render adds a suffix. Copy the real URL, set `FRONTEND_ORIGIN` to it, and save (the service restarts).
-6. Optional email: also set `EMAIL_DRIVER=smtp`.
 
 Manual alternative (no Blueprint): New → Web Service → connect repo → Language **Docker**, Instance **Free**, then add the same variables by hand.
 
@@ -92,7 +99,7 @@ The app shows a branded loader (thin top bar after 0.15 s, full-screen loader af
 | `migrate deploy` error mentioning locks or unsupported syntax | Delete `backend/prisma/migrations` in the repo once, redeploy (uses `db push`) |
 | Uploads fail with 500 or "packet/entry too large" | The file is bigger than the database row limit: lower `MAX_FILE_MB` (try 3), or switch to `STORAGE_DRIVER=s3` |
 | Very slow first page | Render woke from sleep; use the UptimeRobot monitor. Check the region match under "Making it feel fast" |
-| No invite/reset emails | Set `EMAIL_DRIVER=smtp` and `SMTP_URL`; otherwise copy the link from the Render log |
+| No invite/reset emails | Open **Admin → Email → Delivery log** for the exact reason. Usually an unverified domain, or `onboarding@resend.dev` used for someone other than your own Resend email. Invitations always give the Admin a copyable link when no email went out |
 
 ## Alternative: Oracle Cloud Always Free VM (more power, more work)
 As of mid-2026 the free ARM allowance is 2 OCPU / 12 GB; a card is needed to sign up, capacity can be unavailable, and idle instances can be reclaimed. If you get one, the existing `docker-compose.yml` runs everything (MySQL, ClamAV virus scanner, API, website) on one machine with persistent disk; add HTTPS with a reverse proxy such as Caddy and a domain.

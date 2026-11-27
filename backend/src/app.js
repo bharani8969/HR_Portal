@@ -17,6 +17,7 @@ import adminSettingsRoutes from "./modules/admin/adminSettings.routes.js";
 import customFieldRoutes from "./modules/customFields/customFields.routes.js";
 import supportRoutes from "./modules/support/support.routes.js";
 import { mountFrontend } from "./staticSite.js";
+import adminEmailRoutes from "./modules/admin/adminEmail.routes.js";
 import dashboardRoutes from "./modules/dashboard/dashboard.routes.js";
 
 const app = express();
@@ -44,6 +45,7 @@ app.use("/api/v1/admin", adminEmployeeRoutes);
 app.use("/api/v1/admin", adminSettingsRoutes);
 app.use("/api/v1/custom-fields", customFieldRoutes);
 app.use("/api/v1/support", supportRoutes);
+app.use("/api/v1/admin", adminEmailRoutes);
 app.use("/api/v1/dashboard", dashboardRoutes);
 app.use("/api/v1/reports", reportRoutes);
 app.use("/api/v1", documentRoutes);

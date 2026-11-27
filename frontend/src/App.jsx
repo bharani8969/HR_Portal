@@ -11,6 +11,7 @@ import HRManagement from "./pages/Admin/HRManagement.jsx";
 import AdminEmployees from "./pages/Admin/AdminEmployees.jsx";
 import Departments from "./pages/Admin/Departments.jsx";
 import FormFields from "./pages/Admin/FormFields.jsx";
+import EmailSettings from "./pages/Admin/EmailSettings.jsx";
 import ActivityLogs from "./pages/Admin/ActivityLogs.jsx";
 import Reports from "./pages/Reports.jsx";
 import Security from "./pages/Security.jsx";
@@ -30,7 +31,7 @@ export default function App() {
         </Route>
         <Route element={<ProtectedRoute role="ADMIN" />}>
           <Route path="/admin" element={<AdminDashboard />} /><Route path="/admin/hr" element={<HRManagement />} /><Route path="/admin/employees" element={<AdminEmployees />} />
-          <Route path="/admin/departments" element={<Departments />} /><Route path="/admin/fields" element={<FormFields />} /><Route path="/admin/logs" element={<ActivityLogs />} />
+          <Route path="/admin/departments" element={<Departments />} /><Route path="/admin/fields" element={<FormFields />} /><Route path="/admin/email" element={<EmailSettings />} /><Route path="/admin/logs" element={<ActivityLogs />} />
         </Route>
       </Route>
       <Route path="*" element={<Navigate to="/login" replace />} />

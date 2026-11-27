@@ -32,6 +32,9 @@ Maps the specification's security requirements to what is implemented. **Done** 
 | Legal/privacy review (consent, retention, deletion policy, data location) | **Open** | Business/legal decision |
 | Replay protection for TOTP codes, account lockout after N failures, per-account (not only per-IP) throttling | **Open (recommended)** | Small additions; ask if you want them |
 
+## Email
+Provider keys stay in the server environment (never in the database or the browser). Admin-editable destination emails live in `app_settings`; only an Admin can change them, so the public concern form cannot be turned into a mail relay. `email_logs` records type, recipient, subject, status and error, never the message (reset and invitation emails contain one-time links). A failed email never changes the generic password-reset answer, so it cannot be used to discover which accounts exist.
+
 ## Document storage options
 `STORAGE_DRIVER=db` stores each file AES-256-GCM encrypted (same key as the sensitive fields, random nonce per file, authenticated) in `document_blobs`, written in the same transaction as its record; database dumps therefore contain only ciphertext. `s3` stores in a private bucket (KMS/provider encryption); `local` is for development only. The database key is not in the database, but it is in the app environment: protect it and keep a copy (loss = documents unreadable).
 

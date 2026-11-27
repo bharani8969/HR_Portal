@@ -40,15 +40,17 @@ const schema = z.object({
   CLAMAV_HOST: z.string().default("127.0.0.1"),
   CLAMAV_PORT: z.coerce.number().default(3310),
   MAX_FILE_MB: z.coerce.number().default(5),
-  EMAIL_DRIVER: z.enum(["console", "smtp"]).default("console"),
+  EMAIL_DRIVER: z.enum(["console", "smtp", "resend"]).default("console"), // resend = HTTPS API (works on hosts that block SMTP, e.g. Render free)
+  RESEND_API_KEY: z.string().optional(),
   SMTP_URL: z.string().optional(),
   EMAIL_FROM: z.string().default("PeopleVault <no-reply@example.com>"),
 }).superRefine((e, ctx) => {
+  if (e.EMAIL_DRIVER === "resend" && !e.RESEND_API_KEY) ctx.addIssue({ code: "custom", message: "EMAIL_DRIVER=resend requires RESEND_API_KEY" });
   if (e.NODE_ENV !== "production") return;
   const need = (c, message) => { if (!c) ctx.addIssue({ code: "custom", message }); };
   need(e.STORAGE_DRIVER === "db" || (e.STORAGE_DRIVER === "s3" && !!e.OBJECT_STORAGE_BUCKET), "production requires STORAGE_DRIVER=db, or s3 with OBJECT_STORAGE_BUCKET");
   need(e.SCAN_DRIVER === "clamav", "production requires SCAN_DRIVER=clamav");
-  need(e.EMAIL_DRIVER === "smtp" && !!e.SMTP_URL, "production requires EMAIL_DRIVER=smtp and SMTP_URL");
+  need((e.EMAIL_DRIVER === "smtp" && !!e.SMTP_URL) || (e.EMAIL_DRIVER === "resend" && !!e.RESEND_API_KEY), "production requires EMAIL_DRIVER=resend with RESEND_API_KEY (or smtp with SMTP_URL)");
   need(e.FRONTEND_ORIGIN.split(",").every((o) => o.trim().startsWith("https://")), "FRONTEND_ORIGIN must be https in production");
 });
 

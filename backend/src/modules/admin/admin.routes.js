@@ -9,6 +9,7 @@ import { randomToken, uuid, ok, fail, wrap, zodFail } from "../../utils/helpers.
 import { env } from "../../config/env.js";
 import { issueResetToken } from "../auth/tokens.js";
 import { sendEmail } from "../../services/emailService.js";
+import { renderEmail } from "../../services/emailTemplates.js";
 
 const router = Router();
 router.use(authenticate, authorize("ADMIN"));
@@ -43,9 +44,16 @@ router.post("/hr-users", wrap(async (req, res) => {
     select,
   });
   const link = await issueResetToken(user.id, 72 * 60);
-  await sendEmail({ to: email, subject: `You're invited to ${env.APP_NAME} (${env.CLIENT_NAME})`, text: `Hello ${user.name},\n\nSet your password using this single-use link (valid 72 hours):\n${link}\n\nPowered by ${env.POWERED_BY}` });
+  let emailed = false;
+  try {
+    emailed = await sendEmail({
+      to: email, type: "INVITE", subject: `You're invited to ${env.APP_NAME} (${env.CLIENT_NAME})`,
+      ...renderEmail({ title: `Welcome, ${user.name}`, lines: [`You have been invited to ${env.APP_NAME} for ${env.CLIENT_NAME}.`, "Choose your password with the button below. The link works once and is valid for 72 hours."], button: { label: "Set my password", url: link } }),
+    });
+  } catch (e) { console.error("Invitation email failed:", e.message); }
   await audit(req.user.id, "HR_CREATED", "user", user.id, req.ip);
-  res.status(201).json(ok({ user, ...(env.EMAIL_DRIVER === "console" && { inviteLink: link }) })); // link echoed in dev only
+  // If no email went out (console mode or a delivery problem) the Admin gets the one-time link to pass on securely.
+  res.status(201).json(ok({ user, emailed, ...(!emailed && { inviteLink: link }) }));
 }));
 
 router.get("/hr-users/:id", wrap(async (req, res) => {

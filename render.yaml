@@ -40,11 +40,13 @@ services:
         value: db
       - key: MAX_FILE_MB
         value: "4"                # keep files small: they live in database rows (TiDB's default row limit is about 6 MB)
-      # --- email (optional; without it, invite/reset links appear only in the Render log) ---
+      # --- email: Resend (HTTPS API). Render's free plan blocks SMTP, so Gmail/SMTP cannot work there. ---
       - key: EMAIL_DRIVER
-        value: console
-      - key: SMTP_URL
-        sync: false
+        value: resend
+      - key: RESEND_API_KEY
+        sync: false              # from resend.com -> API Keys
+      - key: EMAIL_FROM
+        sync: false              # onboarding@resend.dev (tests only), or: HR Portal <no-reply@yourdomain.com> after verifying your domain
       # --- no antivirus on a free 512 MB instance: only the EICAR test string is caught ---
       - key: SCAN_DRIVER
         value: dev

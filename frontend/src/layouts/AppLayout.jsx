@@ -10,6 +10,7 @@ import TuneRounded from "@mui/icons-material/TuneRounded";
 import InsightsRounded from "@mui/icons-material/InsightsRounded";
 import HistoryRounded from "@mui/icons-material/HistoryRounded";
 import ShieldRounded from "@mui/icons-material/ShieldRounded";
+import MailOutlineRounded from "@mui/icons-material/MailOutlineRounded";
 import PersonAddAlt1Rounded from "@mui/icons-material/PersonAddAlt1Rounded";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -21,7 +22,7 @@ import { SOON } from "../modules.jsx";
 const W = 272;
 const ADMIN_NAV = [
   ["/admin", "Dashboard", <DashboardRounded />], ["/admin/hr", "HR Management", <BadgeRounded />], ["/admin/employees", "Employees", <GroupsRounded />],
-  ["/admin/departments", "Departments", <ApartmentRounded />], ["/admin/fields", "Form Fields", <TuneRounded />], ["/reports", "Reports", <InsightsRounded />],
+  ["/admin/departments", "Departments", <ApartmentRounded />], ["/admin/fields", "Form Fields", <TuneRounded />], ["/admin/email", "Email", <MailOutlineRounded />], ["/reports", "Reports", <InsightsRounded />],
   ["/admin/logs", "Activity Logs", <HistoryRounded />], ["/security", "Security", <ShieldRounded />],
 ];
 const HR_NAV = [
